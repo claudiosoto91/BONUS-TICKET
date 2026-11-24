@@ -1,0 +1,6 @@
+{
+  "name": "Bonus Ticket — Central de Gestión",
+  "description": "Sistema centralizador de gestión, empresas, cobranzas, reportes Meta con IA y mapa territorial para Bonus Ticket Tucumán.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

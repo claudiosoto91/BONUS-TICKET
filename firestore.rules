@@ -1,0 +1,649 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerified() && request.auth.token.email == 'claudio91soto@gmail.com';
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    }
+
+    function isOptString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isOptNumber(data, key) {
+      return !(key in data) || (data[key] is number);
+    }
+
+    function isValidWorkspace(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['ownerId', 'name', 'createdAt', 'updatedAt']) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.ownerId == request.auth.uid &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCompany(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'nombre', 'estado', 'localidad',
+          'empleados', 'nivelFidelizacion', 'precioIndividual',
+          'formulaAumento', 'valorAumento', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'nombre', 'cuit', 'estado', 'localidad',
+          'direccion', 'lat', 'lng', 'empleados', 'contactoPrincipal',
+          'telefonoPrincipal', 'contactoDifusion', 'telefonoDifusion', 'mailDifusion',
+          'linkBaseEmpleados', 'fechaBaseEmpleados', 'linkContrato', 'linkPropuesta',
+          'nivelFidelizacion', 'contactoCobranza', 'telefonoCobro',
+          'mailCobro', 'facturacionControlada', 'precioIndividual', 'proximaFechaFacturar',
+          'fechaProximoAumento', 'frecuenciaActualizacion',
+          'formulaAumento', 'valorAumento', 'fechaBaja', 'motivoBaja', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.nombre is string && data.nombre.size() >= 1 && data.nombre.size() <= 160 &&
+        isOptString(data, 'cuit', 30) &&
+        data.estado in ['Activa', 'Prospecto', 'Prospecto rechazada', 'Dado de baja', 'Otros'] &&
+        data.localidad is string && data.localidad.size() >= 1 && data.localidad.size() <= 100 &&
+        isOptString(data, 'direccion', 200) &&
+        isOptNumber(data, 'lat') &&
+        isOptNumber(data, 'lng') &&
+        data.empleados is int && data.empleados >= 0 && data.empleados <= 100000 &&
+        isOptString(data, 'contactoPrincipal', 120) &&
+        isOptString(data, 'telefonoPrincipal', 50) &&
+        isOptString(data, 'contactoDifusion', 120) &&
+        isOptString(data, 'telefonoDifusion', 50) &&
+        isOptString(data, 'mailDifusion', 160) &&
+        isOptString(data, 'linkBaseEmpleados', 500) &&
+        isOptString(data, 'fechaBaseEmpleados', 20) &&
+        isOptString(data, 'linkContrato', 500) &&
+        isOptString(data, 'linkPropuesta', 500) &&
+        data.nivelFidelizacion in ['Fidelización Presencial', 'Difusión masiva WhatsApp/Email'] &&
+        isOptString(data, 'contactoCobranza', 120) &&
+        isOptString(data, 'telefonoCobro', 50) &&
+        isOptString(data, 'mailCobro', 160) &&
+        (!('facturacionControlada' in data) || data.facturacionControlada is bool) &&
+        data.precioIndividual is number && data.precioIndividual >= 0 &&
+        isOptString(data, 'proximaFechaFacturar', 20) &&
+        isOptString(data, 'fechaProximoAumento', 20) &&
+        (!('frecuenciaActualizacion' in data) || data.frecuenciaActualizacion in ['Mensual', 'Bimestral', 'Trimestral', 'Semestral', 'Manual']) &&
+        data.formulaAumento in ['porcentaje', 'ipc', 'monto_fijo'] &&
+        data.valorAumento is number && data.valorAumento >= 0 &&
+        isOptString(data, 'fechaBaja', 20) &&
+        isOptString(data, 'motivoBaja', 600) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTask(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'titulo', 'responsable', 'fecha',
+          'estado', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'titulo', 'responsable', 'empresaId',
+          'empresaNombre', 'fecha', 'estado', 'notas', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.titulo is string && data.titulo.size() >= 1 && data.titulo.size() <= 200 &&
+        data.responsable in ['Ramiro', 'Marketing', 'Miguel', 'Nahuel'] &&
+        isOptString(data, 'empresaId', 128) &&
+        isOptString(data, 'empresaNombre', 160) &&
+        data.fecha is string && data.fecha.size() >= 1 && data.fecha.size() <= 20 &&
+        data.estado in ['Pendiente', 'En Proceso', 'Vencida', 'Listo'] &&
+        isOptString(data, 'notas', 600) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPlanTask(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'titulo', 'sector', 'sectores', 'fechaObjetivo',
+          'semana', 'prioridad', 'estado', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'titulo', 'sector', 'sectores', 'fechaObjetivo',
+          'semana', 'prioridad', 'estado', 'empresaId', 'empresaNombre',
+          'linkDrive', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.titulo is string && data.titulo.size() >= 1 && data.titulo.size() <= 200 &&
+        data.sector in ['', 'Marketing', 'Cobranzas', 'Comercios', 'Empresas', 'General'] &&
+        data.sectores is list && data.sectores.size() <= 5 &&
+        (data.sectores.size() == 0 || data.sectores[0] is string) &&
+        data.sectores.hasOnly(['Marketing', 'Cobranzas', 'Comercios', 'Empresas', 'General']) &&
+        data.fechaObjetivo is string && data.fechaObjetivo.size() >= 1 && data.fechaObjetivo.size() <= 20 &&
+        data.semana is string && data.semana.size() >= 1 && data.semana.size() <= 60 &&
+        data.prioridad in ['Baja', 'Media', 'Alta'] &&
+        data.estado in ['Pendiente', 'En Proceso', 'Completado'] &&
+        isOptString(data, 'empresaId', 128) &&
+        isOptString(data, 'empresaNombre', 160) &&
+        isOptString(data, 'linkDrive', 500) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPayment(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'empresaId', 'periodo',
+          'montoFacturado', 'montoCobrado', 'retenciones', 'estado',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'empresaId', 'periodo',
+          'montoFacturado', 'montoCobrado', 'retenciones', 'estado',
+          'fechaPago', 'fechaVencimiento', 'numeroFactura',
+          'medioPago', 'observaciones', 'marcadoFacturar', 'facturada',
+          'fechaFacturacion', 'loteId',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.empresaId is string && data.empresaId.size() >= 1 && data.empresaId.size() <= 128 &&
+        data.periodo is string && data.periodo.size() == 7 && data.periodo.matches('^[0-9]{4}-[0-9]{2}$') &&
+        data.montoFacturado is number && data.montoFacturado >= 0 &&
+        data.montoCobrado is number && data.montoCobrado >= 0 &&
+        data.retenciones is number && data.retenciones >= 0 &&
+        data.estado in ['Al día', 'Parcial', 'Pendiente', 'Vencida'] &&
+        isOptString(data, 'fechaPago', 20) &&
+        isOptString(data, 'fechaVencimiento', 20) &&
+        isOptString(data, 'numeroFactura', 60) &&
+        isOptString(data, 'medioPago', 60) &&
+        isOptString(data, 'observaciones', 500) &&
+        (!('marcadoFacturar' in data) || data.marcadoFacturar is bool) &&
+        (!('facturada' in data) || data.facturada is bool) &&
+        isOptString(data, 'fechaFacturacion', 20) &&
+        isOptString(data, 'loteId', 40) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMetaReport(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'periodo', 'fechaCarga', 'origen',
+          'alcance', 'visualizaciones', 'visitasPerfil', 'interacciones',
+          'clicsEnlace', 'nuevosSeguidores', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'periodo', 'fechaCarga', 'origen',
+          'alcance', 'visualizaciones', 'visitasPerfil', 'interacciones',
+          'clicsEnlace', 'nuevosSeguidores', 'analisisEjecutivo',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.periodo is string && data.periodo.size() >= 1 && data.periodo.size() <= 40 &&
+        data.fechaCarga is string && data.fechaCarga.size() >= 1 && data.fechaCarga.size() <= 20 &&
+        data.origen in ['CSV Meta', 'Gemini Vision', 'Manual'] &&
+        data.alcance is number && data.alcance >= 0 &&
+        data.visualizaciones is number && data.visualizaciones >= 0 &&
+        data.visitasPerfil is number && data.visitasPerfil >= 0 &&
+        data.interacciones is number && data.interacciones >= 0 &&
+        data.clicsEnlace is number && data.clicsEnlace >= 0 &&
+        data.nuevosSeguidores is number && data.nuevosSeguidores >= 0 &&
+        isOptString(data, 'analisisEjecutivo', 3000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMarketingLog(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'semana', 'tipoEntrega', 'fecha',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'semana', 'grillaDiaria', 'colaboraciones',
+          'magoyaVideos', 'promoDuplica', 'tipoEntrega', 'empresaId',
+          'empresaNombre', 'fecha', 'notas', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.semana is string && data.semana.size() >= 1 && data.semana.size() <= 40 &&
+        (!('grillaDiaria' in data) || data.grillaDiaria is bool) &&
+        (!('colaboraciones' in data) || data.colaboraciones is bool) &&
+        (!('magoyaVideos' in data) || data.magoyaVideos is bool) &&
+        (!('promoDuplica' in data) || data.promoDuplica is bool) &&
+        data.tipoEntrega in ['Checklist Semanal', 'Kit Difusión WhatsApp/Email', 'Reel de Fidelización'] &&
+        isOptString(data, 'empresaId', 128) &&
+        isOptString(data, 'empresaNombre', 160) &&
+        data.fecha is string && data.fecha.size() >= 1 && data.fecha.size() <= 20 &&
+        isOptString(data, 'notas', 600) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidFidelizacion(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'empresaId', 'empresaNombre',
+          'fecha', 'tipo', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'empresaId', 'empresaNombre',
+          'fecha', 'tipo', 'notas', 'planTaskId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.empresaId is string && data.empresaId.size() >= 1 && data.empresaId.size() <= 128 &&
+        data.empresaNombre is string && data.empresaNombre.size() >= 1 && data.empresaNombre.size() <= 160 &&
+        data.fecha is string && data.fecha.size() >= 1 && data.fecha.size() <= 20 &&
+        data.tipo in ['Visita', 'Llamada', 'Reunión presencial', 'Reunión virtual', 'Evento', 'Otros'] &&
+        isOptString(data, 'notas', 600) &&
+        isOptString(data, 'planTaskId', 128) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCompanyActivity(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'empresaNombre', 'tipo', 'fecha',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'empresaId', 'empresaNombre', 'tipo',
+          'fecha', 'detalle', 'estadoAnterior', 'estadoNuevo',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        isOptString(data, 'empresaId', 128) &&
+        data.empresaNombre is string && data.empresaNombre.size() >= 1 && data.empresaNombre.size() <= 160 &&
+        data.tipo in ['Creación', 'Paso a Activa', 'Baja', 'Cambio de estado', 'Eliminación'] &&
+        data.fecha is string && data.fecha.size() >= 1 && data.fecha.size() <= 20 &&
+        isOptString(data, 'detalle', 600) &&
+        isOptString(data, 'estadoAnterior', 60) &&
+        isOptString(data, 'estadoNuevo', 60) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCobranzaEvent(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'empresaNombre', 'tipo', 'fecha',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'empresaId', 'empresaNombre', 'periodo',
+          'fecha', 'tipo', 'monto', 'retenciones', 'detalle', 'loteId',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        isOptString(data, 'empresaId', 128) &&
+        data.empresaNombre is string && data.empresaNombre.size() >= 1 && data.empresaNombre.size() <= 160 &&
+        isOptString(data, 'periodo', 20) &&
+        data.fecha is string && data.fecha.size() >= 1 && data.fecha.size() <= 20 &&
+        data.tipo in ['Pago', 'Cambio de tarifa', 'Lote facturado', 'Compromiso'] &&
+        (!('monto' in data) || (data.monto is number && data.monto >= 0)) &&
+        (!('retenciones' in data) || (data.retenciones is number && data.retenciones >= 0)) &&
+        isOptString(data, 'detalle', 600) &&
+        isOptString(data, 'loteId', 40) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCobranzaReset(data, workspaceId) {
+      return data.keys().hasAll([
+          'ownerId', 'workspaceId', 'periodo', 'fecha',
+          'totalClientes', 'totalFacturado', 'totalCobrado',
+          'totalRetenciones', 'totalSaldoPendiente',
+          'pagadas', 'parciales', 'vencidas', 'items',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'workspaceId', 'periodo', 'fecha', 'hora', 'motivo',
+          'totalClientes', 'totalFacturado', 'totalCobrado',
+          'totalRetenciones', 'totalSaldoPendiente',
+          'pagadas', 'parciales', 'vencidas', 'items',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.workspaceId is string && data.workspaceId == workspaceId &&
+        data.periodo is string && data.periodo.size() == 7 && data.periodo.matches('^[0-9]{4}-[0-9]{2}$') &&
+        data.fecha is string && data.fecha.size() >= 1 && data.fecha.size() <= 20 &&
+        isOptString(data, 'hora', 10) &&
+        isOptString(data, 'motivo', 400) &&
+        data.totalClientes is int && data.totalClientes >= 0 && data.totalClientes <= 10000 &&
+        data.totalFacturado is number && data.totalFacturado >= 0 &&
+        data.totalCobrado is number && data.totalCobrado >= 0 &&
+        data.totalRetenciones is number && data.totalRetenciones >= 0 &&
+        data.totalSaldoPendiente is number && data.totalSaldoPendiente >= 0 &&
+        data.pagadas is int && data.pagadas >= 0 && data.pagadas <= 10000 &&
+        data.parciales is int && data.parciales >= 0 && data.parciales <= 10000 &&
+        data.vencidas is int && data.vencidas >= 0 && data.vencidas <= 10000 &&
+        data.items is list && data.items.size() <= 500 &&
+        (data.items.size() == 0 || data.items[0] is map) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    match /workspaces/{workspaceId} {
+      allow get: if isVerified() && isValidId(workspaceId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isVerified() && isValidId(workspaceId) &&
+        isValidWorkspace(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(workspaceId) &&
+        isValidWorkspace(incoming()) &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt']))
+        );
+      allow delete: if isVerified() && isValidId(workspaceId) && (existing().ownerId == request.auth.uid || isAdmin());
+
+      match /companies/{companyId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(companyId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(companyId) &&
+          isValidCompany(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(companyId) &&
+          isValidCompany(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'nombre', 'cuit', 'estado', 'localidad', 'direccion', 'lat', 'lng', 'empleados',
+              'contactoPrincipal', 'telefonoPrincipal', 'contactoDifusion', 'telefonoDifusion', 'mailDifusion',
+              'linkBaseEmpleados', 'fechaBaseEmpleados', 'linkContrato', 'linkPropuesta', 'nivelFidelizacion',
+              'contactoCobranza', 'telefonoCobro', 'mailCobro', 'facturacionControlada', 'precioIndividual',
+              'proximaFechaFacturar', 'fechaProximoAumento', 'frecuenciaActualizacion',
+              'formulaAumento', 'valorAumento', 'fechaBaja', 'motivoBaja', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(companyId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /tasks/{taskId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(taskId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(taskId) &&
+          isValidTask(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(taskId) &&
+          isValidTask(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && existing().estado != 'Listo' && incoming().diff(existing()).affectedKeys().hasOnly([
+              'titulo', 'responsable', 'empresaId', 'empresaNombre', 'fecha', 'estado', 'notas', 'updatedAt'
+            ])) ||
+            (existing().ownerId == request.auth.uid && existing().estado == 'Listo' && incoming().estado != 'Listo' && incoming().diff(existing()).affectedKeys().hasOnly([
+              'estado', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(taskId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /planTasks/{planTaskId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(planTaskId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(planTaskId) &&
+          isValidPlanTask(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(planTaskId) &&
+          isValidPlanTask(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && existing().estado != 'Completado' && incoming().diff(existing()).affectedKeys().hasOnly([
+              'titulo', 'sector', 'sectores', 'fechaObjetivo', 'semana', 'prioridad', 'estado',
+              'empresaId', 'empresaNombre', 'linkDrive', 'updatedAt'
+            ])) ||
+            (existing().ownerId == request.auth.uid && existing().estado == 'Completado' && incoming().estado != 'Completado' && incoming().diff(existing()).affectedKeys().hasOnly([
+              'estado', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(planTaskId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /payments/{paymentId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(paymentId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(paymentId) &&
+          isValidPayment(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(paymentId) &&
+          isValidPayment(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'montoFacturado', 'montoCobrado', 'retenciones', 'estado',
+              'fechaPago', 'fechaVencimiento', 'numeroFactura',
+              'medioPago', 'observaciones', 'marcadoFacturar', 'facturada',
+              'fechaFacturacion', 'loteId', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(paymentId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /metaReports/{reportId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(reportId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(reportId) &&
+          isValidMetaReport(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(reportId) &&
+          isValidMetaReport(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'periodo', 'fechaCarga', 'origen', 'alcance', 'visualizaciones',
+              'visitasPerfil', 'interacciones', 'clicsEnlace', 'nuevosSeguidores',
+              'analisisEjecutivo', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(reportId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /marketingLogs/{logId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(logId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(logId) &&
+          isValidMarketingLog(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(logId) &&
+          isValidMarketingLog(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'semana', 'grillaDiaria', 'colaboraciones', 'magoyaVideos', 'promoDuplica',
+              'tipoEntrega', 'empresaId', 'empresaNombre', 'fecha', 'notas', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(logId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /fidelizaciones/{fidelizacionId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(fidelizacionId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(fidelizacionId) &&
+          isValidFidelizacion(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(fidelizacionId) &&
+          isValidFidelizacion(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'empresaId', 'empresaNombre', 'fecha', 'tipo', 'notas', 'planTaskId', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(fidelizacionId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /companyActivities/{activityId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(activityId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(activityId) &&
+          isValidCompanyActivity(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(activityId) &&
+          isValidCompanyActivity(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'empresaId', 'empresaNombre', 'tipo', 'fecha', 'detalle', 'estadoAnterior', 'estadoNuevo', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(activityId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /cobranzaEvents/{eventId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(eventId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(eventId) &&
+          isValidCobranzaEvent(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(eventId) &&
+          isValidCobranzaEvent(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'empresaId', 'empresaNombre', 'periodo', 'fecha', 'tipo', 'monto',
+              'retenciones', 'detalle', 'loteId', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(eventId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+
+      match /cobranzaResets/{resetId} {
+        allow get: if isVerified() && isValidId(workspaceId) && isValidId(resetId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+        allow list: if isVerified() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow create: if isVerified() && isValidId(workspaceId) && isValidId(resetId) &&
+          isValidCobranzaReset(incoming(), workspaceId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId);
+        allow update: if isVerified() && isValidId(workspaceId) && isValidId(resetId) &&
+          isValidCobranzaReset(incoming(), workspaceId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().workspaceId == existing().workspaceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isWorkspaceOwner(workspaceId) &&
+          (
+            isAdmin() ||
+            (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly([
+              'motivo', 'updatedAt'
+            ]))
+          );
+        allow delete: if isVerified() && isValidId(workspaceId) && isValidId(resetId) &&
+          (existing().ownerId == request.auth.uid || isAdmin()) && isWorkspaceOwner(workspaceId);
+      }
+    }
+  }
+}

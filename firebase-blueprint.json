@@ -1,0 +1,831 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Espacio centralizado de trabajo del equipo Bonus Ticket perteneciente a un propietario autenticado.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "createdAt", "updatedAt"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Ficha maestra de empresa activa o prospecto en Tucumán con información general, difusión y facturación.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "cuit": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "estado": {
+          "type": "string",
+          "enum": ["Activa", "Prospecto", "Prospecto rechazada", "Dado de baja", "Otros"]
+        },
+        "localidad": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "direccion": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "empleados": {
+          "type": "integer"
+        },
+        "contactoPrincipal": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "telefonoPrincipal": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "contactoDifusion": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "telefonoDifusion": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "mailDifusion": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "linkBaseEmpleados": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "fechaBaseEmpleados": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "linkContrato": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "linkPropuesta": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "nivelFidelizacion": {
+          "type": "string",
+          "enum": ["Fidelización Presencial", "Difusión masiva WhatsApp/Email"]
+        },
+        "contactoCobranza": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "telefonoCobro": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "mailCobro": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "facturacionControlada": {
+          "type": "boolean"
+        },
+        "precioIndividual": {
+          "type": "number"
+        },
+        "proximaFechaFacturar": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "fechaProximoAumento": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "frecuenciaActualizacion": {
+          "type": "string",
+          "enum": ["Mensual", "Bimestral", "Trimestral", "Semestral", "Manual"]
+        },
+        "formulaAumento": {
+          "type": "string",
+          "enum": ["porcentaje", "ipc", "monto_fijo"]
+        },
+        "valorAumento": {
+          "type": "number"
+        },
+        "fechaBaja": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "motivoBaja": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "nombre", "estado", "localidad", "empleados", "nivelFidelizacion", "precioIndividual", "formulaAumento", "valorAumento", "createdAt", "updatedAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Actividad semanal o acuerdo de reunión de lunes asignado a un área del equipo.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "titulo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "responsable": {
+          "type": "string",
+          "enum": ["Ramiro", "Marketing", "Miguel", "Nahuel"]
+        },
+        "empresaId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "fecha": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "estado": {
+          "type": "string",
+          "enum": ["Pendiente", "En Proceso", "Vencida", "Listo"]
+        },
+        "notas": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "titulo", "responsable", "fecha", "estado", "createdAt", "updatedAt"]
+    },
+    "PlanTask": {
+      "title": "PlanTask",
+      "description": "Tarjeta Kanban de Planificación Semanal (Reuniones de Lunes) asignada por sector con prioridad, semana objetivo y enlace opcional.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "titulo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sector": {
+          "type": "string",
+          "enum": ["", "Marketing", "Cobranzas", "Comercios", "Empresas", "General"]
+        },
+        "sectores": {
+          "type": "array",
+          "description": "Lista acotada (0 a 5 elementos) de etiquetas/áreas vinculadas a la tarjeta Kanban."
+        },
+        "fechaObjetivo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "semana": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "prioridad": {
+          "type": "string",
+          "enum": ["Baja", "Media", "Alta"]
+        },
+        "estado": {
+          "type": "string",
+          "enum": ["Pendiente", "En Proceso", "Completado"]
+        },
+        "empresaId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "linkDrive": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "titulo", "sector", "sectores", "fechaObjetivo", "semana", "prioridad", "estado", "createdAt", "updatedAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Registro mensual de cobranza y facturación vinculado a una empresa activa.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "empresaId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "periodo": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^[0-9]{4}-[0-9]{2}$"
+        },
+        "montoFacturado": {
+          "type": "number"
+        },
+        "montoCobrado": {
+          "type": "number"
+        },
+        "retenciones": {
+          "type": "number"
+        },
+        "estado": {
+          "type": "string",
+          "enum": ["Al día", "Parcial", "Pendiente", "Vencida"]
+        },
+        "fechaPago": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "fechaVencimiento": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "numeroFactura": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "medioPago": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "observaciones": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "marcadoFacturar": {
+          "type": "boolean"
+        },
+        "facturada": {
+          "type": "boolean"
+        },
+        "fechaFacturacion": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "loteId": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "empresaId", "periodo", "montoFacturado", "montoCobrado", "retenciones", "estado", "createdAt", "updatedAt"]
+    },
+    "MetaReport": {
+      "title": "MetaReport",
+      "description": "Reporte de métricas de Meta Business Suite importado por CSV o analizado con Gemini Vision.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "periodo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "fechaCarga": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "origen": {
+          "type": "string",
+          "enum": ["CSV Meta", "Gemini Vision", "Manual"]
+        },
+        "alcance": {
+          "type": "number"
+        },
+        "visualizaciones": {
+          "type": "number"
+        },
+        "visitasPerfil": {
+          "type": "number"
+        },
+        "interacciones": {
+          "type": "number"
+        },
+        "clicsEnlace": {
+          "type": "number"
+        },
+        "nuevosSeguidores": {
+          "type": "number"
+        },
+        "analisisEjecutivo": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "periodo", "fechaCarga", "origen", "alcance", "visualizaciones", "visitasPerfil", "interacciones", "clicsEnlace", "nuevosSeguidores", "createdAt", "updatedAt"]
+    },
+    "MarketingLog": {
+      "title": "MarketingLog",
+      "description": "Bitácora semanal de Marketing con checklist de rutina y entregas de kits/reels vinculados a empresas.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "semana": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "grillaDiaria": {
+          "type": "boolean"
+        },
+        "colaboraciones": {
+          "type": "boolean"
+        },
+        "magoyaVideos": {
+          "type": "boolean"
+        },
+        "promoDuplica": {
+          "type": "boolean"
+        },
+        "tipoEntrega": {
+          "type": "string",
+          "enum": ["Checklist Semanal", "Kit Difusión WhatsApp/Email", "Reel de Fidelización"]
+        },
+        "empresaId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "fecha": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "notas": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "semana", "tipoEntrega", "fecha", "createdAt", "updatedAt"]
+    },
+    "Fidelizacion": {
+      "title": "Fidelizacion",
+      "description": "Registro de actividad de fidelización con una empresa (visita, llamada, reunión presencial/virtual, evento u otros) sincronizada con Planificación Semanal.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "empresaId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "fecha": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["Visita", "Llamada", "Reunión presencial", "Reunión virtual", "Evento", "Otros"]
+        },
+        "notas": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "planTaskId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "empresaId", "empresaNombre", "fecha", "tipo", "createdAt", "updatedAt"]
+    },
+    "CompanyActivity": {
+      "title": "CompanyActivity",
+      "description": "Historial de movimientos relevantes de empresas (creaciones, pasos a activa, bajas, cambios de estado y eliminaciones).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "empresaId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["Creación", "Paso a Activa", "Baja", "Cambio de estado", "Eliminación"]
+        },
+        "fecha": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "detalle": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "estadoAnterior": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "estadoNuevo": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "empresaNombre", "tipo", "fecha", "createdAt", "updatedAt"]
+    },
+    "CobranzaEvent": {
+      "title": "CobranzaEvent",
+      "description": "Historial y agenda de cobranzas: pagos parciales/totales, cambios de tarifa, lotes facturados y compromisos de pago.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "empresaId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "empresaNombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "periodo": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "fecha": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["Pago", "Cambio de tarifa", "Lote facturado", "Compromiso"]
+        },
+        "monto": {
+          "type": "number"
+        },
+        "retenciones": {
+          "type": "number"
+        },
+        "detalle": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "loteId": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "workspaceId", "empresaNombre", "tipo", "fecha", "createdAt", "updatedAt"]
+    },
+    "CobranzaReset": {
+      "title": "CobranzaReset",
+      "description": "Instantánea histórica archivada antes de resetear los importes de facturación, cobro efectivo, retenciones y saldos pendientes de un período de Cobranzas.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "periodo": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^[0-9]{4}-[0-9]{2}$"
+        },
+        "fecha": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "hora": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "motivo": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "totalClientes": {
+          "type": "integer"
+        },
+        "totalFacturado": {
+          "type": "number"
+        },
+        "totalCobrado": {
+          "type": "number"
+        },
+        "totalRetenciones": {
+          "type": "number"
+        },
+        "totalSaldoPendiente": {
+          "type": "number"
+        },
+        "pagadas": {
+          "type": "integer"
+        },
+        "parciales": {
+          "type": "integer"
+        },
+        "vencidas": {
+          "type": "integer"
+        },
+        "items": {
+          "type": "array",
+          "description": "Lista acotada (0 a 500 empresas) con el detalle completo de facturación, cobro, retenciones y saldo de cada empresa antes del reseteo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "workspaceId",
+        "periodo",
+        "fecha",
+        "totalClientes",
+        "totalFacturado",
+        "totalCobrado",
+        "totalRetenciones",
+        "totalSaldoPendiente",
+        "pagadas",
+        "parciales",
+        "vencidas",
+        "items",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Documento raíz del espacio de gestión Bonus Ticket por propietario."
+    },
+    "/workspaces/{workspaceId}/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/Company" },
+      "description": "Empresas activas, prospectos, bajas y otros en Tucumán con datos de difusión y facturación."
+    },
+    "/workspaces/{workspaceId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Carteles de tareas semanales y acuerdos de reuniones de los lunes."
+    },
+    "/workspaces/{workspaceId}/planTasks/{planTaskId}": {
+      "schema": { "$ref": "#/entities/PlanTask" },
+      "description": "Tablero Kanban de Planificación Semanal (Reuniones de Lunes) organizado por sector y semana."
+    },
+    "/workspaces/{workspaceId}/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Cobranzas mensuales vinculadas a empresas activas."
+    },
+    "/workspaces/{workspaceId}/metaReports/{reportId}": {
+      "schema": { "$ref": "#/entities/MetaReport" },
+      "description": "Reportes de redes Meta Business Suite (CSV y Gemini Vision)."
+    },
+    "/workspaces/{workspaceId}/marketingLogs/{logId}": {
+      "schema": { "$ref": "#/entities/MarketingLog" },
+      "description": "Bitácora semanal de Marketing y entregas de kits/reels por empresa."
+    },
+    "/workspaces/{workspaceId}/fidelizaciones/{fidelizacionId}": {
+      "schema": { "$ref": "#/entities/Fidelizacion" },
+      "description": "Registro de fidelizaciones con empresas sincronizadas con Planificación Semanal."
+    },
+    "/workspaces/{workspaceId}/companyActivities/{activityId}": {
+      "schema": { "$ref": "#/entities/CompanyActivity" },
+      "description": "Historial de actividades y movimientos relevantes de empresas."
+    },
+    "/workspaces/{workspaceId}/cobranzaEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/CobranzaEvent" },
+      "description": "Agenda e historial de pagos parciales, cambios de tarifa, lotes y compromisos de cobranza."
+    },
+    "/workspaces/{workspaceId}/cobranzaResets/{resetId}": {
+      "schema": { "$ref": "#/entities/CobranzaReset" },
+      "description": "Historial persistente de reseteos de períodos de Cobranzas con totales y detalle por empresa."
+    }
+  }
+}
